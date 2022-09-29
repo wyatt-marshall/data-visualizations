@@ -1,0 +1,81 @@
+<html>
+    <head>
+        <meta charset='UTF-8'>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+
+        <style>
+  
+            .gridlines .domain {
+              display: none;
+            }
+            
+            .gridlines line {
+              stroke: #bbb8b8;
+            }
+
+        </style>
+
+
+    </head>
+
+    <body>
+        <h1> Wyatt Marshall (wgm46@cornell.edu) </h1> 
+        <h3> Displaying the average color of individual frames of 25 films. </h3>
+        <p> This visualization allows viewers to get a sense of the mood of a film with just a quick glance. </p>
+        <br>
+
+        <div id='barcodes'>
+            
+        </div>
+
+        <script>
+            const requestData = async function() {
+
+                //load data with async function
+                const data = await d3.json("../movie_barcodes/movie_barcodes.json");
+                console.log(data);
+                //select container div
+                const barcodes = d3.select('#barcodes');
+                
+
+                data.forEach(d => {
+                    //append div for each movie to container div
+                    let div = barcodes.append('div')
+                            .attr('id', d.title);
+
+                    //append movie title with h5 style to each movie div
+                    div.append('h5').text(d.title);
+                    
+                    //append 800 by 100 canvas to each movie div
+                    let canvas = div.append('canvas')
+                       .attr('id', d.title)
+                       .attr('width', '800')
+                       .attr('height', '100');
+
+                    //select context of each canvas
+                    let context = canvas.node().getContext('2d');
+                    
+                    //iterate over each bar in one movie and draw it in the correct position for that movie's canvas
+                    d.bars.forEach(bar => {
+                        let x = bar.x + 0.5;
+                        let color = bar.color;
+
+                        context.strokeStyle = color;
+                        context.beginPath();
+                        context.moveTo(x, 100);
+                        context.lineTo(x, 0);
+                        context.stroke();
+
+                    });
+
+                });
+
+            //end async function
+            }
+            //call async function
+            requestData();
+        </script>
+        
+
+    </body>
+</html>

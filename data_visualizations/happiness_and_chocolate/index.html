@@ -1,0 +1,523 @@
+<html>
+
+<head>
+    <title>Project 1</title> 
+    <meta charset="UTF-8">   
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- <link rel="stylesheet" type="text/css" href="style.css" /> -->
+
+    <style>
+        /* HEADINGS AND DESCRIPTIONS */
+        .projHead {
+            margin: 0 20 30 20;
+            padding-top: .05em;
+        }
+
+        .projectTitle {
+            margin-bottom: -14;
+            font-size: 34;
+        }
+
+        .graphTitle {
+            border-radius: 10px;
+            background-color: #f0c9e6;
+            padding: 20;
+            font-size: 22;
+            display: block;
+            margin: auto;
+            width: 1400;
+            margin-top: 30px;
+
+        }
+
+        .descrip1 {
+            /* top right bottom left */
+            margin: 20 150 20 150; 
+            font-size: 18;
+        }
+        .descrip2 {
+            /* top right bottom left */
+            margin: 20 150 20 150; 
+            font-size: 18;
+        }
+
+
+        /* LEGEND FOR GRAPH 2 */
+        #bothLegends {
+            display:flex;
+            flex-direction: column;
+            /* border-style: solid; */
+            
+        }
+
+        #legend1, #legend2{
+            display:flex;
+            flex-direction: row;
+        }
+       
+
+
+        span {
+            
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        /* .allG2 {
+            display: flex;
+            flex-direction: row;
+        } */
+
+        .radiusExplain {
+            margin: auto;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 700px;
+            background: rgba(139, 69, 19, 0.5);
+            font-size: 20;
+            border-radius: 10px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        } 
+
+
+        /* GRIDLINES */
+        .gridlines .domain {
+            display: none;
+        }
+  
+        .gridlines line {
+            stroke: lightgrey;
+        }
+
+        /* GENERAL HTML */
+        html {
+            font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+        }
+        
+        #chocTitle {
+            font-weight: bold;
+            color: peru;
+        }
+
+        /* COLORS */
+        .chocColor {
+            font-style: normal;
+            color: saddlebrown;
+        }
+        .happyColor {
+            font-style: normal;
+            color: #e884cf;
+        }
+        .lifeColor {
+            font-style: normal;
+            color: darkblue;
+        }
+
+       
+
+    </style>
+
+</head>
+
+<body>
+    <div class="projHead">
+        <h1 class="projectTitle">Unwrapping chocolate consumption, happiness levels, and life expectancy in 22 countries.</h1>
+        <h4><em>Kyle Betts (kcb82), Medha Bulumulla (mb2569), Wyatt Marshall (wgm46), Hannah Rudt (hgr26)</em></h4>
+    </div>
+    
+   
+    <h3 class="graphTitle">Graph 1: Happiness levels and chocolate consumption by country in 2017</h3>
+    <p class="descrip1">
+        This bar chart compares <i class = "happyColor">2017 happiness rates</i> with the 22 countries with the most <i class="chocColor">chocolate consumption rates(kg/capita) in 2017</i>.
+        The countries are ordered from most to least chocolate consumption, with happiness scores fluctuating next to their 
+        respective countries. While all the happiness scores are in a close range, it appears that countries eating a moderate 
+        amount of chocolate are consistently the happiest.
+    </p> 
+    <svg id = "s1" height=500 width=1400 style="margin-left: 30px; display: block; margin: auto;"></svg> <br>
+
+    <h3 class="graphTitle">Graph 2: Life expectancy, happiness levels, and chocolate consumption by country in 2017</h3>
+    <p class="descrip2">
+        This graph plots 22 countries with the most <i class="chocColor">chocolate consumption rates (kg/capita) in 2017</i> against <i class = "happyColor">happiness rates</i> and <i class ="lifeColor">life expectancy rates</i> in 2017.
+        Contrary to what we thought, countries that consume less chocolate (smaller circles) actually have lower life expectancy rates.
+        Switzerland seems to have struck the best balance, being one of the happiest countries with a high life expectancy and a lot of 
+        chocolate consumption—sweet!
+    </p>
+
+   
+
+    <div class="allG2">
+        <svg id = "s2" height=500 width=1400 style="margin-bottom: 0px; margin-left: 30px; display: block; margin: auto;"></svg>
+        <p class="radiusExplain">
+            Circle radius corresponds to chocolate consumption rates (kg/capita).
+        </p>
+        <div id = "bothLegends">
+            <div id="legend1"></div>
+            <div id="legend2"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Colors for document
+        const chocColor = 'saddlebrown';
+        const happinessColor = "#e884cf";
+
+        // Load the three data sets
+        chocPromise = d3.csv("data/choc_consumption_2017.csv", d3.autoType);
+        happinessPromise = d3.csv("data/happinessData2017_use.csv", d3.autoType);
+        lifePromise = d3.csv("data/life_expectancy.csv", d3.autoType);
+ 
+        Promise.all([chocPromise, happinessPromise, lifePromise]).then( (datasets) =>{
+            chocolateData = datasets[0];
+            happinessData = datasets[1];
+            lifeData = datasets[2];
+
+            // Make Netherlands names the same
+            chocolateData[12]["Country"] = "Netherlands"
+            // Remove Great Britain
+            chocolateData.splice(4, 1);
+            // Russia: "Russian Federation":41 
+            lifeData[41]["country"] = "Russia"
+            // Slovakia: "Slovak Republic": 33
+            lifeData[33]["country"] = "Slovakia"
+
+            // Remove countries from happiness and life expectancy data not in chocolate data set
+            let reducedHappinessData = [];
+            let reducedLifeData = [];
+
+            chocolateData.forEach((c, j) => {
+                happinessData.forEach( (h,i) => {
+                    if ( h["Country"] == c["Country"]) {
+                        reducedHappinessData.push(h);
+                    }
+                }) 
+                lifeData.forEach( (l,i) => {
+                    if ( l["country"] == c["Country"]) {
+                        reducedLifeData.push(l);
+                    }
+                }) 
+            }) 
+            happinessData = reducedHappinessData;
+            lifeData = reducedLifeData;
+
+            console.log(`Chocolate Data: ${chocolateData}`);
+            console.log(`Happiness Data: ${happinessData}`);
+            console.log(`Life Expectancy Data: ${lifeData}`);
+
+            ///////////////////////////////////////////////////////////////////
+            //////////////////////////// Bar Chart ////////////////////////////
+            ///////////////////////////////////////////////////////////////////
+            
+            // Variables for bar chart
+            let chart = d3.select("svg#s1");
+            let width = chart.attr("width");
+            let height = chart.attr("height");
+            let margin = {top: 40, right: 40, bottom: 80, left: 40};
+            let chartWidth = width - margin.left - margin.right;
+            let chartHeight = height - margin.top - margin.bottom;
+
+            // Groupings for bar chart
+            let annotations = chart.append('g')
+                                    .attr('id', 'annotations');
+
+            let chartArea = chart.append('g')
+                                 .attr('id', 'points')
+                                 .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+            //chocolate and happiness bar chart
+            //extents, scales, axes, and gridlines
+            let chocolateExtent = d3.extent(chocolateData, d => d['kg/capita']);
+            let chocolateScale = d3.scaleLinear().domain([0, 9]).range([chartHeight, 0]);
+            let leftAxis = d3.axisLeft(chocolateScale);
+            let leftGridlines = d3.axisLeft(chocolateScale)
+                                    .tickFormat('')
+                                    .tickSize(-chartWidth-30);      
+            annotations.append('g')
+                        .attr('class', 'left axis')
+                        .attr('transform', `translate(${margin.left-15}, ${margin.top})`)
+                        .call(leftAxis);
+            annotations.append('g')
+                        .attr('class', 'left gridlines')
+                        .attr('transform', `translate(${margin.left-15}, ${margin.top})`)
+                        .call(leftGridlines);
+
+            let happinessScale = d3.scaleLinear().domain([0, 9]).range([chartHeight, 0]);
+            let rightAxis = d3.axisRight(happinessScale);
+            annotations.append('g')
+                        .attr('class', 'right axis')
+                        .attr('transform', `translate(${chartWidth+55}, ${margin.top})`)
+                        .call(rightAxis);
+
+            let countries = d3.map(chocolateData, d => d.Country);
+            let countryScale = d3.scalePoint().domain(countries).range([0, chartWidth]);
+            let bottomAxis = d3.axisBottom(countryScale);
+            annotations.append('g')
+                        .attr('class', 'x axis')
+                        .attr('transform',`translate(${margin.left}, ${chartHeight+margin.top+15})`)
+                        .call(bottomAxis);
+
+
+            //plotting the bars
+            //chocolate consumption
+            let chocConsumptionScale = d3.scaleLinear().domain([0,9]).range([0, chartHeight])
+
+            chocolateData.forEach(d => {
+                chart.append('rect')
+                    .style("fill", chocColor )
+                    .attr("x", countryScale(d['Country']) + 30)
+                    .attr("y", chartHeight - chocConsumptionScale(d['kg/capita']) + 40 )
+                    .attr('width', '10')
+                    .attr('height', chocConsumptionScale(d['kg/capita']));
+            });
+            //happiness
+            happinessData.forEach(d => {
+                chart.append('rect')
+                        .style("fill", happinessColor )
+                        .attr("x", countryScale(d['Country']) + 40)
+                        .attr("y", happinessScale(d['Happiness score']) + 40 )
+                        .attr('width', '10')
+                        .attr('height', chocConsumptionScale(d['Happiness score']));
+            });
+
+            //creating a legend
+            chart.append('rect')
+                .style('fill', chocColor)
+                .attr('x', '800')
+                .attr('y', '478')
+                .attr('width', '15')
+                .attr('height', '15');
+            chart.append('text')
+                .attr("id", "choc_key")
+                .text('Chocolate consumption in kg/capita')
+                .attr('x', '820')
+                .attr('y', '490')
+
+
+            chart.append('rect')
+                .style('fill', happinessColor)
+                .attr('x', '300')
+                .attr('y', '478')
+                .attr('width', '15')
+                .attr('height', '15');
+            chart.append('text')
+                .attr("id", "happy_key")
+                .text('Happiness Score from the World Happiness Report 2017')
+                .attr('x', '320')
+                .attr('y', '490');
+
+            // Title
+            chart.append('text')
+                .text('Chocolate Consumption vs Happiness Rates')
+                .style("font-size", "30px")
+                .attr("dominant-baseline", "auto")
+                .attr("text-anchor", "middle")
+                .attr('x', width/2)
+                .attr('y', '30');
+
+
+            //////////////////////////////////////////////////////////////////////
+            //////////////////////////// Scatter Plot ////////////////////////////
+            //////////////////////////////////////////////////////////////////////
+
+            // Variables for svg2
+            const svg2 = d3.select("svg#s2");
+            let width2 = svg2.attr("width");
+            let height2 = svg2.attr("height");
+
+            let margin2 = {top: 50, right: 50, bottom: 70, left: 80};
+            let chart2Height = height2 - margin2.top - margin2.bottom;
+            let chart2Width = width2 - margin2.left - margin2.right;
+
+            // Grouping for axis and gridlines
+            let annotations2 = svg2.append('g')
+                                   .attr('id', 'annotations2');
+
+            let chartArea2 = svg2.append('g')
+                                 .attr('id', 'chartArea2')
+                                 .attr('transform', `translate(${margin2.left}, ${margin2.top})`);
+
+            let pointLabelsArea = svg2.append('g')
+                                      .attr('id', 'pointLabelsArea')
+                                      .attr('transform', `translate(${margin2.left}, ${margin2.top})`);
+          
+            // Create Scales
+            let minRadius = 8
+            let maxRadius = 40;
+            let rightPadding = 0.1;
+            let leftPadding = 5;
+            let bottomPadding = 0.3;
+            let topPadding = 0.3;
+            // Life Scale (X-Axis)
+            let lifeExtent = d3.extent(lifeData, d=> d["life expectancy"]);
+            let lifeScatterScale = d3.scalePow()
+                                     .exponent(15)
+                                     .domain([lifeExtent[0] - leftPadding, lifeExtent[1] + rightPadding])
+                                     .range([0, chart2Width]);
+            // Happiness Scale (Y-Axis)
+            let happinessExtent = d3.extent(happinessData, d=> d["Happiness score"]);
+            let happinessScatterScale = d3.scalePow()
+                                          .exponent(3)
+                                          .domain([happinessExtent[0] - bottomPadding, happinessExtent[1] + topPadding])
+                                          .range([chart2Height, 0]);
+
+            // Chocolate Scale (Radius)
+            let chocolateScatterScale = d3.scaleLinear()
+                                          .domain(chocolateExtent)
+                                          .range([minRadius, maxRadius]);
+            
+            // Create Axis and Gridlines
+            // Happiness Axis and Gridlines (Y-Axis)
+            let leftScatterAxis = d3.axisLeft(happinessScatterScale);
+            let leftScatterGridLines = d3.axisLeft(happinessScatterScale)
+                                         .tickFormat('')
+                                         .tickSize(-chart2Width);      
+            annotations2.append('g')
+                .attr('class', 'leftScatterAxis')
+                .attr('transform', `translate(${margin2.left}, ${margin2.top})`)
+                .call(leftScatterAxis);
+            annotations2.append('g')
+                .attr('class', 'gridlines')
+                .attr('transform', `translate(${margin2.left}, ${margin2.top})`)
+                .call(leftScatterGridLines);
+            
+            // Life Axis and Gridlines (X-Axis)
+            let bottomScatterAxis = d3.axisBottom(lifeScatterScale);
+            let bottomScatterGridLines = d3.axisBottom(lifeScatterScale)
+                                           .tickFormat('')
+                                           .tickSize(-chart2Height); 
+            annotations2.append('g')
+                .attr('class', 'bottomScatterAxis')
+                .attr('transform',`translate(${margin2.left}, ${chart2Height+margin2.top})`)
+                .call(bottomScatterAxis);
+            annotations2.append('g')
+                .attr('class', 'gridlines')
+                .attr('transform', `translate(${margin2.left},${chart2Height+margin2.top})`)
+                .call(bottomScatterGridLines);
+
+            // plotting the circles
+            dataLen = chocolateData.length
+            chocolateData.forEach( (d,i) => {
+                chartArea2.append("circle")
+                    .attr("cx", lifeScatterScale(lifeData[i]["life expectancy"]))
+                    .attr("cy", happinessScatterScale(happinessData[i]["Happiness score"]))
+                    .attr("r", chocolateScatterScale(d["kg/capita"]))
+                    .attr('opacity', 0.5)
+                    .style("fill", "saddlebrown");
+
+                    // Add number in middle of circle
+                    pointLabelsArea.append("text")
+                                   .text(i)
+                                   .attr("font-size", 12)
+                                   .attr("font-weight", 'bold')
+                                   .attr("x", lifeScatterScale(lifeData[i]["life expectancy"]))
+                                   .attr("y", happinessScatterScale(happinessData[i]["Happiness score"]))
+                                   .attr("text-anchor", "middle")
+                                   .attr("dominant-baseline", "middle")
+                                   .raise();
+
+                    // Add country to legend
+                    if (i - (dataLen/2) < 0) {
+                        d3.select('#legend1').append('span')
+                                            .attr("id", "country")
+                                            .text(`${i}: ${d['Country']}`)
+                                            .style("font-size", "11px")
+                                            .style("width", "100px")
+                                            .style("height", "30px")
+                                            .style("padding-top", "15px")
+                                            .style("text-align", "center")
+                                            .style("border-style", "groove")
+                                     
+                    } else {
+                        d3.select('#legend2').append('span')
+                                            .attr("id", "num")
+                                            .text(`${i}: ${d['Country']}`)
+                                            .style("font-size", "11px")
+                                            .style("width", "92.5px")
+                                            .style("height", "30px")
+                                            .style("padding-top", "15px")
+                                            .style("text-align", "center")
+                                            .style("border-style", "groove")
+                    }
+            });
+
+            let cornerPadding = 30;
+            // Upper Left Corner Text
+            pointLabelsArea.append("text")
+                           .text('Short but Happy Life')
+                           .attr("font-size", 15)
+                           .attr("font-weight", 'bold')
+                           .attr("x", cornerPadding)
+                           .attr("y", cornerPadding)
+                           .attr("text-anchor", "start")
+                           .attr("dominant-baseline", "hanging");
+
+            // Upper Right Corner Text
+            pointLabelsArea.append("text")
+                           .text('Long and Happy Life')
+                           .attr("font-size", 15)
+                           .attr("font-weight", 'bold')
+                           .attr("x", chart2Width - cornerPadding)
+                           .attr("y", cornerPadding)
+                           .attr("text-anchor", "end")
+                           .attr("dominant-baseline", "hanging");
+
+            // Bottom Left Corner Text
+            pointLabelsArea.append("text")
+                           .text('Short and Unhappy Life')
+                           .attr("font-size", 15)
+                           .attr("font-weight", 'bold')
+                           .attr("x", cornerPadding)
+                           .attr("y", chart2Height - cornerPadding)
+                           .attr("text-anchor", "start")
+                           .attr("dominant-baseline", "auto");
+
+            // Bottom Right Corner Text
+            pointLabelsArea.append("text")
+                           .text('Long but Unhappy Life')
+                           .attr("font-size", 15)
+                           .attr("font-weight", 'bold')
+                           .attr("x", chart2Width - cornerPadding)
+                           .attr("y", chart2Height - cornerPadding)
+                           .attr("text-anchor", "end")
+                           .attr("dominant-baseline", "auto");
+
+            // X-Axis Label
+            svg2.append('text')
+                .attr("id", "lifeAxis")
+                .text('Life Expectancy')
+                .attr('x', '630')
+                .attr('y', '480');
+
+            // Y-Axis Label
+            svg2.append('text')
+                .attr("id", "happyAxis")
+                .text('Happiness Score')
+                .attr("text-anchor", "end")
+                .attr("transform", "rotate(-90)")
+                .attr('x', -margin2.bottom-150) // this acts like the y
+                .attr('y', -margin2.left + 110); // this acts like the x
+                
+            // Title
+            svg2.append('text')
+                .attr("id", "chocTitle")
+                .text('Chocolate Consumption vs Life Expectancy and Happiness')
+                .style("font-size", "30px")
+                .attr("dominant-baseline", "auto")
+                .attr("text-anchor", "middle")
+                .attr('x', width2/2)
+                .attr('y', '50');
+
+            //Legend circle
+            // svg2.append('circle')
+            //     .attr("cx",1360)
+            //     .attr("cy",100)
+            //     .attr("r",40)
+            //     .attr('opacity', 0.5)
+            //     .style("fill", "black");
+
+        });
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<html>
+    <head>
+        <meta charset='UTF-8'>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+
+        <style>
+  
+            .gridlines .domain {
+              display: none;
+            }
+            
+            .gridlines line {
+              stroke: #5c5555;
+            }
+              
+          
+        </style>
+
+    </head>
+    <body>
+        <h1> Wyatt Marshall (wgm46@cornell.edu) </h1>
+        <h3> Interactive visualization of the relationship between wine price and score in several US regions. </h3>
+        <p> Hover over the lables at the bottom of the graph to highlight a specific region's data points. </p>
+        <p> Hover over one data point to display the name and source of the wine. </p>
+            <svg id="chart" height="500" width="800" style="margin-bottom: 30px; margin-left: 30px">
+                <text id='label' x='400' y='30'  text-anchor='middle' font-weight='bold' style='font-size:13px; font-family:Verdana'></text>
+            </svg> 
+            
+            <div>
+                <span id='oregon' style="color:black; background:#2ca02c; position:absolute; left:100px"></span>
+                <span id='california' style="color:black; background:#1f77b4; position:absolute; left:190px"></span>
+                <span id='newyork' style="color:black; background:#ff7f0e; position:absolute; left:300px"></span>
+                <span id='washington' style="color:black; background:#d62728; position:absolute; left:415"></span>
+                <span id='clear' style="color:black; background:rgba(128, 203, 238, 0.397); position:absolute; left:540px"></span>
+                <br><br>
+            </div>
+
+            <script>
+
+                let wine = d3.select("svg#chart");
+                let width = wine.attr("width");
+                let height = wine.attr("height");
+                let margin = {top: 40, right: 40, bottom: 40, left: 40};
+                let wineWidth = width - margin.left - margin.right;
+                let wineHeight = height - margin.top - margin.bottom;
+
+                let annotations = wine.append('g')
+                                      .attr('id', 'annotations');
+
+                let wineArea = wine.append('g')
+                                   .attr('id', 'points')
+                                   .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+                
+
+                d3.json('../wine_price_and_score/wines.json', d3.autoType)
+                  .then( (data) => {
+                    //keeping track of number of bad data points
+                    let i = 0;
+                    //new array for good data points
+                    cleaned = [];
+                    data.forEach(d => {     
+                        //all bad data points don't have a country, so add data points with a country to the 'cleaned' array  
+                        if (d.country == 'US'){
+                            i++;
+                            cleaned.push(d);
+                            
+                        }
+                    });
+                    console.log('Number of bad data items removed: ', (929-i));
+
+                    //casting points from string to number, and removing the '$' then casting price from string to number
+                    cleaned.forEach(d => {
+                        d.points = Number(d.points);
+                        d.price = Number( d.price.replace(/\$/g,"") );
+                    });
+
+
+                    console.log("New array length: ", cleaned.length);
+                    console.log(cleaned);
+
+
+
+                    let priceExtent = d3.extent(cleaned, d => d.price);
+                    let pointsExtent = d3.extent(cleaned, d => d.points);
+
+                    let priceScale = d3.scaleLog()
+                                       .domain(priceExtent)
+                                       .range([0, wineWidth]);
+                    let pointsScale = d3.scaleLinear()
+                                        .domain(pointsExtent)
+                                        .range([wineHeight, 0]);
+                    let stateScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+
+                    let leftAxis = d3.axisLeft(pointsScale);
+                    let leftGridlines = d3.axisLeft(pointsScale)
+                                          .tickFormat('')
+                                          .tickSize(-wineWidth-15);      
+
+                    annotations.append('g')
+                               .attr('class', 'y axis')
+                               .attr('transform', `translate(${margin.left-15}, ${margin.top})`)
+                               .call(leftAxis);
+                    annotations.append('g')
+                               .attr('class', 'y gridlines')
+                               .attr('transform', `translate(${margin.left-15}, ${margin.top})`)
+                               .call(leftGridlines);
+
+                    let bottomAxis = d3.axisBottom(priceScale)
+                                        .tickFormat(d3.format("$.0s"));
+                    let bottomGridlines = d3.axisBottom(priceScale)
+                                            .tickFormat('')
+                                            .tickSize(-wineHeight-15);
+                                            
+
+                    annotations.append('g')
+                               .attr('class', 'x axis')
+                               .attr('transform',`translate(${margin.left}, ${wineHeight+margin.top+15})`)
+                               .call(bottomAxis);
+                    annotations.append('g')
+                               .attr('class', 'x gridlines')
+                               .attr('transform', `translate(${margin.left}, ${wineHeight+margin.top+15})`)
+                               .call(bottomGridlines);
+
+                    
+                    function jitter() {
+                        let num = (Math.floor(Math.random() * 5));
+                        // let num = Math.random() * 4;
+                        if (num === 0) {
+                            return num
+                        }
+                        else if (Math.random() > .5) {
+                            return num
+                        }
+                        else {
+                            return num * -1
+                        }
+                    };
+
+                   
+                    let circles = wineArea.selectAll('circle').data(cleaned)
+                                          .join('circle')
+                                          .attr("r", '5')
+                                          .style("fill", d => stateScale(d.state) )
+                                          .attr("cx", d => priceScale(d.price) + jitter() )
+                                          .attr("cy", d => pointsScale(d.points) + jitter() )
+                                          .attr('opacity', '.7');
+
+                    circles.on('mouseover', function() {
+
+                        d3.select(this)
+                          .transition().duration(100)
+                          .attr('r', '8')
+                          .attr('opacity', '1')
+                          .attr('stroke', 'black')
+                          .attr('stroke-width', '1');
+
+                        let title = d3.select(this).datum()['title'];
+                        d3.select('#label')
+                          .text(title);
+
+                    });
+
+
+                    circles.on('mouseout', function() {
+
+                        d3.select(this)
+                          .transition().duration(500)
+                          .attr('r', '5')
+                          .attr('opacity', '.7')
+                          .attr('stroke', 'none');
+
+                        d3.select('#label')
+                          .text('');
+
+                    });
+ 
+                    let oregon = d3.select('span#oregon')
+                                   .text('Oregon');
+
+                    let california = d3.select('span#california')
+                                       .text('California')
+                    
+                    let newyork = d3.select('span#newyork')
+                                       .text('New York')
+
+                    let washington = d3.select('span#washington')
+                                       .text('Washington')
+
+                    let clear = d3.select('span#clear')
+                                       .text('Clear')
+
+
+                    oregon.on('mouseover', function() {
+                        wineArea.selectAll('circle').data(cleaned).join('circle')
+                                .transition().duration(300)
+                                .attr('opacity', d => (d.state==='Oregon' ? '1' : '.3'));
+                    });
+
+                    california.on('mouseover', function() {
+                        wineArea.selectAll('circle').data(cleaned).join('circle')
+                                .transition().duration(300)
+                                .attr('opacity', d => (d.state==='California' ? '1' : '.3'));
+                    });
+
+                    newyork.on('mouseover', function() {
+                        wineArea.selectAll('circle').data(cleaned).join('circle')
+                                .transition().duration(300)
+                                .attr('opacity', d => (d.state==='New York' ? '1' : '.3'));
+                    });
+
+                    washington.on('mouseover', function() {
+                        wineArea.selectAll('circle').data(cleaned).join('circle')
+                                .transition().duration(300)
+                                .attr('opacity', d => (d.state==='Washington' ? '1' : '.3'));
+                    });
+
+                    clear.on('mouseover', function() {
+                        wineArea.selectAll('circle').data(cleaned).join('circle')
+                                .transition().duration(500)
+                                .attr('opacity', '.7');
+                    });
+
+
+
+
+
+                // end promise
+                  });
+
+
+            </script>
+        </p>
+        <p>
+            I first analyzed the data by visually scanning through it. I quickly noticed some 
+            wines had fake varieties, or points over 100 (not possible), or a really low or high price, etc. Ultimately, 
+            I realized that all the entries with wacky attributes shared the common denominator of not having a country,
+            or more accurately, having a country of either 'N/A' or 'NA'. Therefore, I only kept entries with a country
+            attribute equal to 'US'. Then I went through this array and cast the string 'points' attribute to a number,
+            and removed '$' from the 'price' attribute and cast it to a number as well.
+        </p>
+   
+        <p>
+            I chose to use a linear scale for points, and a log scale for price. This is because pricing has a roughly log relationship
+            with points, so the graph displays this in a linear way. The axes are in a dark color so they 
+            stand out, and the gridlines are in a lighter grey so they don't distract from the data that's being plotted. My padding choice was 15 pixels
+            on top of the normal padding by height and width of the chart, because this pushes my scales close to the edge of the 
+            svg without going off, so there's more space between them and the circles that I'll be plotting later.
+        </p>
+       
+        <p>
+            I decided to add jitter to the data points to avoid overlap. I used Math.floor on the jitter function so it returns integers instead of floats in the range [-4, 4].
+            The cx and cy are determined by scalePrice and scalePoints respectively, with added jitter. The jitter helps remove a lot of overlap, but some still exists, so I made the circles slightly opaque. 
+            Adding jitter means the points don't necessarily accurately reflect the data they represent, but in this case we're more interested in trends than exact values. 
+        </p>
+       
+        <p>
+            I created a mouseover event and a mouseout event. When someone mousesover a circle, the circle grows to an r of 8, the opacity turns to 1, 
+            and a black stroke of width 1 appears. This happens over a smooth transition of 300 ms. The size, stroke, and opacity changes make it clear which
+            circle the veiwer is hovering over. The mouseout event returns the attributes of the circle back to their original. Ultimately, this approach benefits users 
+            by allowing them to select a circle and read the title of the wine. However, in places with a lot of overlap, the circles can be hard to select, 
+            and once selected, the circles radius increase can cause it to cover other circles, making them hard to select.
+        </p>
+
+        <p>
+            I added 5 spans within a div element underneath the chart, enabling the user to highlight data points from one region. The benefit of this is that a user
+            can compare and contrast the price and score relationship for wines from different regions with more ease than trying to visually parse the crowded graph.
+            The 'clear' span returns the chart to it's default state of displaying all data points with a consistent opacity.
+        </p>
+    </body>
+</html>

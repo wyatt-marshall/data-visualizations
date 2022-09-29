@@ -1,0 +1,80 @@
+<html>
+    <head>
+        <meta charset='UTF-8'>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+
+        <style>
+  
+            .gridlines .domain {
+              display: none;
+            }
+            
+            .gridlines line {
+              stroke: #5c5555;
+            }
+              
+          
+        </style>
+
+    </head>
+    <body>
+        <h1> Wyatt Marshall (wgm46@cornell.edu) </h1>
+        <h3> LAB color space visualization with interactive luminosity slider. </h3>
+        
+        <p>
+            <svg id="one" height="420" width="420" style="margin-bottom: 30px; margin-left: 30px"></svg>
+
+            <div>
+                <input type='range' id='lightness' name='lightness' min='0' max='200' step='1' >
+            </div>
+            
+            <script>
+                let one = d3.select('svg#one');
+
+                // create array of Objects with 'a', 'b' pairs ranging from -160 – 160
+                let arr = [];
+                for(let i = -160; i <= 160; i+=16){
+                    for(let j = -160; j <= 160; j+=16){
+
+                        let temp = {'a' : i,
+                                    'b' : j}
+                        arr.push(temp);
+
+                    }
+                }
+
+                // aScale scales the cx of each circle based on its 'a' value
+                let aScale = d3.scaleLinear()
+                               .domain([-160, 160])
+                               .range([10, 410]);
+
+                // bScale scales the cy of each circle based on its 'b' value
+                let bScale = d3.scaleLinear()
+                               .domain([-160, 160])
+                               .range([410, 10]);
+
+
+                // this data join creates the circles and updates their color based on each circle's 'a', 'b', and luminosity
+                function showCircles(luminosity) {
+                    one.selectAll('circle').data(arr)
+                                           .join(
+                                                enter => {
+                                                    enter.append('circle')
+                                                         .attr('r', 10)
+                                                         .attr('cx', d => aScale(d.a) )
+                                                         .attr('cy', d => bScale(d.b) )
+                                                         .attr('fill', d => d3.lab(luminosity, d.a, d.b) );
+                                                },
+                                                update => update.attr('fill', d => d3.lab(luminosity, d.a, d.b)),
+                                                exit => {
+                                                    exit.remove()
+                                                }
+                                    )};
+                                    
+                showCircles(100);
+                d3.select('#lightness').on('input', function() {showCircles(this.value)} );
+
+            </script>
+        </p>
+    </body>
+</html>

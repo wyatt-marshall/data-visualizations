@@ -1,0 +1,188 @@
+<html>
+    <head>
+        <meta charset='UTF-8'>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+    </head>
+    <body>
+        <h1> Wyatt Marshall (wgm46@cornell.edu) </h1>
+        <h3> Visualizing the value of diamonds </h3>
+        <p>
+            <!-- creating the svgs -->
+            <svg id="B" height="400" width="400" style="background: #F5F5F5; margin-bottom: 30px; margin-left: 30px">
+                <text x="10" y="20" fill="black">Price</text>
+                <text x="350" y="390" fill="black">Carat</text>
+            </svg>
+            <svg id="D" height="400" width="400" style="background: #f5f5f5; margin-bottom: 30px; margin-left: 30px">
+                <text x="10" y="20" fill="black">Price</text>
+                <text x="355" y="370" fill="black">Color</text>
+                <text x="355" y="390" fill="black">Rating</text>
+            </svg>
+
+            <svg id="E" height="400" width="400" style="background: #f5f5f5; margin-bottom: 30px; margin-left: 30px">
+                <text x="10" y="20" fill="black">Price</text>
+                <text x="10" y="38" fill="black">per</text>
+                <text x="10" y="60" fill="black">Carat</text>
+                <text x="355" y="370" fill="black">Color</text>
+                <text x="355" y="390" fill="black">Rating</text>
+            </svg>
+            <script>
+                //promise to load the data
+                d3.json('../diamonds/diamonds.json')
+                  .then( (data) => {
+
+                    //selecting the svg and saving some attributes of it
+                    let svgB = d3.select('svg#B')
+                    let widthB = svgB.attr('width');
+                    let heightB = svgB.attr('height');
+                    let marginsB = {top: '5', right: '5', bottom: '5', left: '5'};
+
+                    //finding the max carat and setting the linear carat scale
+                    let maxCarat = d3.max(data, (d) => { return Math.max(d['carat']); });
+                    let caratScale = d3.scaleLinear()
+                                       .domain( [0, maxCarat] )
+                                       .range( [marginsB.left, widthB-marginsB.right] )
+
+                    //finding the max price and stting the linear price scale
+                    let maxPrice = d3.max(data, (d) => { return Math.max(d['price']); });
+                    let priceScale = d3.scaleLinear()
+                                       .domain( [0, maxPrice] )
+                                       .range( [heightB - marginsB.bottom, marginsB.top] )
+
+                    //for loop for making the vertical gridlines
+                    for (let i = 0; i < maxCarat; i++) {
+                        svgB.append("line")
+                            .attr("stroke", "lightgrey")
+                            .attr("x1", caratScale(i))
+                            .attr("x2", caratScale(i))
+                            .attr("y1", marginsB.top)
+                            .attr("y2", heightB-marginsB.bottom)
+                            .attr("stroke-width", "2");
+                    };
+
+                    //for loop for making the horizontal gridlines
+                    for (let i = 0; i < maxPrice; i += 1000) {
+                        svgB.append("line")
+                            .attr("stroke", "lightgrey")
+                            .attr("x1", marginsB.left)
+                            .attr("x2", widthB-marginsB.right)
+                            .attr("y1", priceScale(i))
+                            .attr("y2", priceScale(i))
+                            .attr("stroke-width", "2");
+                    };
+
+                    //creating the circles for each data point
+                    data.forEach(d => {
+                        svgB.append('circle')
+                            .attr('r', '3px')
+                            .attr('cx', Math.floor(caratScale(d.carat)))
+                            .attr('cy', Math.floor(priceScale(d.price)))
+                            .attr('opacity', '0.4')
+                            .style('fill', '#0f028c')
+                    });
+
+                    //graphing the color rating of each gem
+                    //dimensions of svgD
+                    let svgD = d3.select('svg#D')
+                    let widthD = svgD.attr('width');
+                    let heightD = svgD.attr('height');
+                    let marginsD = {top: '5', right: '5', bottom: '5', left: '5'};
+
+                    //finding the max carat and setting the linear carat scale
+                    let maxColor = 1
+                    let colorScale = d3.scaleLinear()
+                                       .domain( [0, 8] )
+                                       .range( [marginsD.left, widthB-marginsD.right] )
+
+                    //for loop for making the vertical gridlines
+                    for (let i = 0; i < 8; i++) {
+                        svgD.append("line")
+                            .attr("stroke", "lightgrey")
+                            .attr("x1", colorScale(i))
+                            .attr("x2", colorScale(i))
+                            .attr("y1", marginsB.top)
+                            .attr("y2", heightB-marginsB.bottom)
+                            .attr("stroke-width", "2");
+                    };
+
+                    //for loop for making the horizontal gridlines
+                    for (let i = 0; i < maxPrice; i += 1000) {
+                        svgD.append("line")
+                            .attr("stroke", "lightgrey")
+                            .attr("x1", marginsB.left)
+                            .attr("x2", widthB-marginsB.right)
+                            .attr("y1", priceScale(i))
+                            .attr("y2", priceScale(i))
+                            .attr("stroke-width", "2");
+                    };
+
+                    //creating the circles for each data point
+                    data.forEach(d => {
+                        svgD.append('circle')
+                            .attr('r', '3px')
+                            .attr('cx', Math.floor((colorScale(d.color_rating)) + (Math.random()*10-5)) )
+                            .attr('cy', Math.floor(priceScale(d.price)) )
+                            .attr('opacity', '0.3')
+                            .style('fill', '#1b6305')
+                    });
+
+                    //graphing price per carat
+                    //selecting the svg and saving some attributes of it
+                    let svgE = d3.select('svg#E')
+                    let widthE = svgE.attr('width');
+                    let heightE = svgE.attr('height');
+                    let marginsE = {top: '5', right: '5', bottom: '5', left: '5'};
+
+                    //finding the max price per carat and stting the linear price per carat scale
+                    let maxPpc = d3.max(data, (d) => { return Math.max(d['price'] / d['carat']); });
+                    let maxPcc  = Math.floor(maxPpc);
+
+                    let ppcScale = d3.scaleLinear()
+                                       .domain( [0, maxPpc] )
+                                       .range( [heightB - marginsB.bottom, marginsB.top] )
+
+                    //for loop for making the vertical gridlines
+                    for (let i = 0; i < 8; i++) {
+                        svgE.append("line")
+                            .attr("stroke", "lightgrey")
+                            .attr("x1", colorScale(i))
+                            .attr("x2", colorScale(i))
+                            .attr("y1", marginsB.top)
+                            .attr("y2", heightB-marginsB.bottom)
+                            .attr("stroke-width", "2");
+                    };
+
+                    //for loop for making the horizontal gridlines
+                    for (let i = 0; i < maxPrice; i += 1000) {
+                        svgE.append("line")
+                            .attr("stroke", "lightgrey")
+                            .attr("x1", marginsB.left)
+                            .attr("x2", widthB-marginsB.right)
+                            .attr("y1", priceScale(i))
+                            .attr("y2", priceScale(i))
+                            .attr("stroke-width", "2");
+                    };
+
+                    //creating the circles for each data point
+                    data.forEach(d => {
+                        svgE.append('circle')
+                            .attr('r', '3px')
+                            .attr('cx', Math.floor((colorScale(d.color_rating)) + (Math.random()*10-5)) )
+                            .attr('cy', Math.floor(ppcScale(d.price / d.carat)) )
+                            .attr('opacity', '0.3')
+                            .style('fill', '#741212')
+                    });
+
+            //end promise
+              });
+            </script>
+            <br>
+            In graph 3, there appears to be a relationship between price per carat and quality, but statistical testing 
+            does not reflect this. A viewer could be misled by this chart because there are some high outliers in the 1 column,
+            and a downward trend of outliers to the 7 column. This may be misinterpreted as a trendline, but when you see how densely the 
+            points are clustered all around the same y levels, it's clear that these are just outliers, and not indicative of a significant trend. 
+            <br>
+            <br>
+            <br>
+        </p>
+    </body>
+</html>

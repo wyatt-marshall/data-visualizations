@@ -1,0 +1,130 @@
+<html>
+    <head>
+        <meta charset='UTF-8'>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://d3js.org/topojson.v3.min.js"></script>
+
+        <style>
+  
+            .gridlines .domain {
+              display: none;
+            }
+            
+            .gridlines line {
+              stroke: #5c5555;
+            }
+
+            .outline {
+              stroke: white;
+              stroke-width: .75px;
+              fill: none;
+            }
+
+            .stateOutline {
+              stroke: rgb(148, 147, 147);
+              stroke-width: 2px;
+              fill: none;
+            }
+              
+          
+        </style>
+
+    </head>
+    <body>
+        <h1> Wyatt Marshall (wgm46@cornell.edu) </h1> 
+        <h3> Chloropleth map visualizing the median family income for ZIP codes in New York state. </h3>
+        <p> Lighter colors correspond to a higher median family income, with the quantile borders listed below the map. </p>
+
+        <p>
+            <svg id="choropleth" height="770" width="990" style="margin:20px;" ></svg>
+            <text id="quantile"></text>
+            <ul id='scale' ></ul>
+        </p>
+
+        
+        <script>
+            //setting up the svg
+            const svg = d3.select('#choropleth');
+            const width = svg.attr('width');
+            const height = svg.attr('height');
+            const margin = { top: 20, right: 20, bottom: 20, left:20};
+            const mapWidth = width - margin.left - margin.right;
+            const mapHeight = height - margin.top - margin.bottom;
+            const map = svg.append('g')
+                           .attr('transform','translate('+margin.left+','+margin.top+')');
+
+            //start async function
+            const requestData = async function() {
+                //async funtion to load the data
+                const nyincome = await d3.json("../median_income_new_york_state/ny_income.topo.json");
+
+                //creating the feature and meshes
+                var zips = topojson.feature(nyincome, nyincome.objects.zip_codes);
+
+                var zipsMesh = topojson.mesh(nyincome, nyincome.objects.zip_codes);
+
+                var stateMesh = topojson.mesh(nyincome, nyincome.objects.state);
+
+                //creating projection and path generator
+                var projection = d3.geoAlbersUsa().fitSize([mapWidth, mapHeight], zips);
+                var path = d3.geoPath().projection(projection);
+
+                //getting incomes in a list out of the bonus properties 
+                var incomes = [];
+                nyincome.objects.zip_codes.geometries.forEach(d => {
+                    incomes.push(d.properties.median_income);
+                });
+
+                //colors and color scale for filling in the map
+                const colors = ['#380161', '#432c94', '#335896', '#67adc2', '#a8ffe8']
+
+                const colorScale = d3.scaleQuantile().domain(incomes).range(colors);
+
+                //data join to draw the zip codes and color them according to our median income color scale
+                map.selectAll('path.zip_code').data(zips.features)
+                                              .join('path')
+                                              .attr('class', 'zip_code')
+                                              .attr('fill', d => colorScale(d.properties.median_income))
+                                              .attr('d', path);
+
+                //appending the ouline of each zip code
+                map.append('path').datum(zipsMesh)
+                   .attr('class', 'outline')
+                   .attr('d', path);
+
+                //appending the outline of the state
+                map.append('path').datum(stateMesh)
+                   .attr('class', 'stateOutline')
+                   .attr('d', path);
+
+                //longitude, latitude of the clock tower
+                var lonLat = [-76.4850, 42.4476];
+                var pos = projection(lonLat);
+                //data join to draw a black circle where the clock tower is
+                map.selectAll('circle').data(pos)
+                   .join('circle')
+                   .attr('cx', pos[0])
+                   .attr('cy', pos[1])
+                   .attr('r', '5')
+                   .style('fill', 'black')
+
+                //getting the quantile thresholds 
+                var quantiles = colorScale.copy().quantiles()
+                const scale = d3.select('#scale');
+                //formatting so the numbers are cut off at one decimal then adding them to the list
+                const f = d3.format(".1f");
+                quantiles.forEach(element => {
+                    scale.append('li')
+                         .text(f(element))
+                         .attr('background', colorScale(element));
+                });
+
+
+            }
+            //end requestData and call the async function
+            requestData();
+        </script>
+
+
+    </body>
+</html>

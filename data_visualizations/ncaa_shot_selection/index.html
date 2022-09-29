@@ -1,0 +1,58 @@
+<html>
+    <head>
+        <meta charset='UTF-8'>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+    </head>
+    <body>
+        <h1> Wyatt Marshall (wgm46@cornell.edu) </h1>
+        <h3> Visualizing shot selection in NCAA basketball </h3>
+        <p>
+            <!-- creating the svg -->
+            <svg id="chart" height="500" width="500" style="background: #000000; margin-bottom: 25px; margin-left: 50px"></svg>
+
+            <script>
+                //loading csv file in a promise
+                d3.csv('../ncaa_shot_selection/NCAA_shots.csv')
+                  .then( (data) => {
+                    
+                    //selecting the svg
+                    let svgq2 = d3.select('svg#chart')
+
+                    //multiplying x, y, width, and height by 5
+                    data.forEach(d => {
+                        d.height = d.height * 5
+                        d.width = d.width * 5
+                        d.x = d.x * 5
+                        d.y = d.y * 5
+                    });
+
+                    // extent of attempts
+                    let extentAttempt = d3.extent(data, function(d) {return d.log_attempt});
+                
+                    //creating color scale with d3.interpolateViridis and extentAttempt
+                    let colorScale2 = d3.scaleSequential(d3.interpolateViridis).domain(extentAttempt);
+
+                    data.forEach(d => {
+                        svgq2.append('rect')
+                             .attr('x', d.x)
+                             .attr('y', d.y)
+                             .attr('width', d.width)
+                             .attr('height', d.height)
+                             .style('fill', colorScale2(d.log_attempt))
+                    });
+                    
+                  });
+            </script>
+            <br>
+            One advantage of the logarithmic scale compared to the linear scale is that with the logarithmic scale, we can see
+            a lot smoother transitions from the high shot attempt areas to the lower shot attempt areas. There's a high concentration of shots
+            right under the basket as that area is yellow, and it fades into light green, then green, then blue until you hit the three point line,
+            where it's green again. This makes sense, as most shots come from underneath the basket, with a decreasing frequency until hitting the three point line.
+            It's interesting to note how few shots happen immediately within the three point line. This, too, makes sense. If one is going to attempt a long two pointer, 
+            it makes more sense to step back a foot and try for three. However, a disadvantage of using the logarithmic scale is that it slightly distorts how many shots come from
+            outside the area under the basket. In the visualization using the logarithmic scale, it looks like there's only a slightly higher 
+            concentration of shots near ther basket than far away from the basket (but not three pointers), but in the visualization using the linear scale,
+            we can clearly see that the vast majority of shots are from right around the hoop or three point land, as those areas are solidly yellow.
+        </p>
+    </body>
+</html>
